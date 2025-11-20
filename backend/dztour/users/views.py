@@ -3,13 +3,14 @@ from rest_framework import status , permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, LoginSerializer , UserSerializer
+from .serializers import *
 from .models import User
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-# Create your views here.
+from django.contrib.auth.models import update_last_login # To update the last_login field 
+
 
 
 class RegisterView(APIView):
@@ -35,6 +36,7 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
+            update_last_login(None,user)
             refresh = RefreshToken.for_user(user)
 
             return Response({
@@ -52,3 +54,11 @@ class UserProfileView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
     
+    def patch(self,request):
+        user = request.user 
+        serializer = UserUpdateSerializer(user , data=request.data , partial = True ) # partial allows updating only first_name without sending email or password 
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data )
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+

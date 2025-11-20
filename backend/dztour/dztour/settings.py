@@ -15,6 +15,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from datetime import timedelta
+import cloudinary 
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -47,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'cloudinary',
+    'cloudinary_storage', # pip install django-cloudinary-storage , pip install django-cloudinary-storage[video]
     'corsheaders',
     'users' ,
     'tours',
@@ -54,7 +57,15 @@ INSTALLED_APPS = [
     'reviews',
     'common',
 
+
+
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080", 
+]
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -64,6 +75,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', 
 ]
 
 ROOT_URLCONF = 'dztour.urls'
@@ -152,7 +164,7 @@ REST_FRAMEWORK = {
 
 }
 
-from datetime import timedelta
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -168,6 +180,15 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv('CLOUD_API_SECRET')
 
 }
+
+cloudinary.config(
+    cloud_name=os.getenv('CLOUD_NAME'),
+    api_key=os.getenv('CLOUD_API_KEY'),
+    api_secret=os.getenv('CLOUD_API_SECRET')
+)
+
+MEDIA_URL = '/media/'
+
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 

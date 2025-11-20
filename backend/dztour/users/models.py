@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import BaseUserManager
-
+from cloudinary.models import CloudinaryField
 # Create your models here.
 
 
@@ -37,6 +37,9 @@ class User(AbstractUser):
     username = None  # Using email instead of username
     email = models.EmailField(unique=True)
     role  = models.CharField(max_length=20 , choices=ROLE_CHOICES, default='tourist')
+    @property # Enforcing validation so the user cannot be created with an invalid string also in the db level 
+    def is_guide(self):
+        return self.role == 'guide'
     phone = models.CharField(max_length=20 , blank=True )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -44,6 +47,8 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    profile_picture = CloudinaryField('image', folder='profile_pics', blank=True, null=True)
     
     class Meta :
         db_table = 'users'
