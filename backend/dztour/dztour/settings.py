@@ -35,7 +35,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
-SOCIALACCOUNT_LOGIN_ON_GET = True # 
+SOCIALACCOUNT_LOGIN_ON_GET = True 
 
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'allauth.socialaccount.providers.google', 
     'cloudinary',
     'cloudinary_storage', 
@@ -73,6 +74,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+
 
 ]
 
@@ -187,6 +189,14 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES':[
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES':{
+        'anon' : '10/minute',
+        'user' : '30/minute',
+    }
 
 }
 
@@ -226,9 +236,13 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = 'none'  
+
+ACCOUNT_AUTHENTICATION_METHOD = 'email'  
+
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False 
+ACCOUNT_USERNAME_REQUIRED = False            
+ACCOUNT_EMAIL_REQUIRED = True   
 
 

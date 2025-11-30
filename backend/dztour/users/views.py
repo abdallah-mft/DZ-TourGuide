@@ -10,7 +10,7 @@ from .serializers import *
 from .models import *
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth import get_user_model
-
+from rest_framework.throttling import *
 
 User = get_user_model()
 
@@ -21,6 +21,7 @@ def generate_otp():
     return f"{random.randint(1000, 9999)}"
 
 class RegisterView(APIView):
+    throttle_classes = [AnonRateThrottle] 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -128,3 +129,13 @@ class UserProfileView(APIView):
             return Response(s.data)
         return Response(s.errors, status=400)
 
+
+class LogoutView(APIView): # Blacklisting the refresh token 
+    permission_classes = [permissions.IsAuthenticated]
+    def post (self , request ):
+        try:
+            RefreshToken(request.data["refresh"]).blacklist()
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e :
+            return Response({"detail": "Invalid refresh token."}, status=status.HTTP_400_BAD_REQUEST)
+        
