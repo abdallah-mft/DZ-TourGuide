@@ -30,15 +30,40 @@ class Commune(models.Model):
         return f'{self.wilaya.code} / {self.name_fr}'
 
 
-class GuideProfile(models.Model):   
+class GuideProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'role': 'guide'}, related_name='profile')
+    id_document = CloudinaryField(folder='guides/id')
     bio = models.TextField()
     languages_spoken = models.ManyToManyField(Language)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    # === PRICING ===
     price_for_half_day = models.DecimalField(max_digits=10, decimal_places=2)
     price_for_day = models.DecimalField(max_digits=10, decimal_places=2)
     price_for_sup_hours = models.DecimalField(max_digits=10, decimal_places=2)
-    wilaya_covered = models.ManyToManyField(Wilaya)
-    commune_covered = models.ManyToManyField(Commune)
+
+    # === COVRED WILAYAS AND COMMUNES ===
+    wilaya_covered = models.ManyToManyField(Wilaya, related_name='guides')
+    commune_covered = models.ManyToManyField(Commune, related_name='guides')
+
+    # === CONTACT INFO ===
+    phone_number = models.CharField(max_length=15, blank=True)
+    whatsapp_number = models.CharField(max_length=15, blank=True, null=True)
+    instagram_account = models.CharField(max_length=50, blank=True, null=True)
+
+    # === STATS ===
+    '''
+    will be implemented later
+    - average rating
+    - total rates
+
+    '''
+
+    # === TIMESTAMPS ===
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return f'profile: {self.user.username}'
@@ -46,7 +71,7 @@ class GuideProfile(models.Model):
 class Certifications(models.Model):
     guide_profile = models.ForeignKey(GuideProfile, on_delete=models.CASCADE, related_name='certifications')
     name = models.CharField(max_length=255)
-    file =  CloudinaryField(folder='certifications')
+    file =  CloudinaryField(folder='guides/certifications')
 
     def __str__(self):
         return f"{self.name}"
