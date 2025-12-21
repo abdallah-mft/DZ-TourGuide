@@ -1,6 +1,6 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
-from ..guides.models import GuideProfile
+from guides.models import GuideProfile
 
 class Tour(models.Model):    
     title = models.CharField(max_length=200)

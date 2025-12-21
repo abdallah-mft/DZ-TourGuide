@@ -1,6 +1,6 @@
 from django.db import models
 from cloudinary.models import CloudinaryField
-from ..users.models import User
+from users.models import User
 
 # Create your models here.
 
@@ -71,7 +71,7 @@ class GuideProfile(models.Model):
 class Certifications(models.Model):
     guide_profile = models.ForeignKey(GuideProfile, on_delete=models.CASCADE, related_name='certifications')
     name = models.CharField(max_length=255)
-    file =  CloudinaryField(folder='guides/certifications')
+    file =  CloudinaryField(folder='guides/certifications' , resource_type = 'auto' , blank = True , null = True )
 
     def __str__(self):
         return f"{self.name}"

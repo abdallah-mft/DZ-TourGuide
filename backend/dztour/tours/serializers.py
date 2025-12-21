@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Tour, TourPicture
-from ..guides.serializers import GuideProfileSerializer
+from guides.serializers import GuideProfileSerializer
 
 class TourPictureSerializer(serializers.ModelSerializer):
     class Meta:

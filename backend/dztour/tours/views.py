@@ -12,4 +12,4 @@ class TourViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerTourOrReadOnly]
 
     def perform_create(self, serializer):
-        serializer.save(guide=self.request.user.guide)
+        serializer.save(guide=self.request.user.profile)

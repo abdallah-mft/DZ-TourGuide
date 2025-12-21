@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'cloudinary_storage', 
     'corsheaders',
     'users' ,
+    'guides',
     'tours',
     'bookings',
     'reviews',
@@ -198,8 +199,10 @@ REST_FRAMEWORK = {
         'user' : '30/minute',
     }
 
-}
+} 
 
+#REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
+#REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
