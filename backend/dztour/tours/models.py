@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from cloudinary.models import CloudinaryField
 from ..guides.models import GuideProfile
@@ -12,13 +13,14 @@ class Tour(models.Model):
     # max_participants = models.PositiveIntegerField(default=10)
 
     def save(self, *args, **kwargs):
-        tour_hours = self.duration.total_seconds() / 3600
+        tour_hours = Decimal(self.duration.total_seconds() / 3600)
         if tour_hours <= 4:
             self.price = self.guide.price_for_half_day
         elif tour_hours <= 8:
             self.price = self.guide.price_for_day
         else:
-            self.price = self.guide.price_for_day + (self.guide.price_for_sup_hours * (tour_hours - 8))
+            extra_hours = tour_hours - 8
+            self.price = self.guide.price_for_day + (self.guide.price_for_sup_hours * extra_hours)
 
         super().save(*args, **kwargs)
         

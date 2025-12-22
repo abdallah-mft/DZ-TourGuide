@@ -1,8 +1,20 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework import permissions
 
-class IsOwnerTourOrReadOnly(BasePermission):
+class IsTheGuideOwnerOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        user = request.user
+        return (
+            user.is_authenticated and 
+            user.role == 'guide' and 
+            hasattr(user, 'profile') and 
+            user.profile.is_verified == True
+        )
+
     def has_object_permission(self, request, view, obj):
-        if request.action in ['list', 'retrieve']:
+        if request.method in permissions.SAFE_METHODS:
             return True
 
         return obj.guide.user == request.user

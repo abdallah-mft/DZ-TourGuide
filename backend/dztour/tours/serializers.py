@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Tour, TourPicture
-from ..guides.serializers import GuideProfileSerializer
+from users.serializers import UserSerializer
 
 class TourPictureSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,7 +8,7 @@ class TourPictureSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class TourSerializer(serializers.ModelSerializer):
-    guide = GuideProfileSerializer(read_only=True)
+    guide = UserSerializer(source='guide.user', read_only=True)
     pictures = TourPictureSerializer(many=True, read_only=True)
 
     class Meta:
