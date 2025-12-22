@@ -3,6 +3,7 @@ from .models import Tour, TourPicture
 from users.serializers import UserSerializer
 
 class TourPictureSerializer(serializers.ModelSerializer):
+    tour = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = TourPicture
         fields = '__all__'

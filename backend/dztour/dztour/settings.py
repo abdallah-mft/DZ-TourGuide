@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'cloudinary_storage', 
     'corsheaders',
     'users' ,
+    'guides',
     'tours',
     'bookings',
     'reviews',

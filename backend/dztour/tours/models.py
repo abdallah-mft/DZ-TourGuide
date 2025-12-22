@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.db import models
 from cloudinary.models import CloudinaryField
-from ..guides.models import GuideProfile
+from guides.models import GuideProfile
 
 class Tour(models.Model):    
     title = models.CharField(max_length=200)
@@ -31,12 +31,7 @@ class Tour(models.Model):
 class TourPicture(models.Model):    
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='pictures')
     image = CloudinaryField(folder='tour_pics')
-    caption = models.CharField(max_length=200, blank=True)
-    is_primary = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ['-is_primary', '-created_at']
     
     def __str__(self):
         return f"{self.tour.title} - Picture {self.id}"
