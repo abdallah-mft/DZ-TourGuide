@@ -1,18 +1,41 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Tour, TourPicture
 from .serializers import TourSerializer, TourPictureSerializer
 from .permissions import IsTheGuideOwnerOrReadOnly
 
 class TourViewSet(viewsets.ModelViewSet):
-    queryset = Tour.objects.all()
     serializer_class = TourSerializer
     permission_classes = [IsTheGuideOwnerOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'description', 'guide__user__username']
+
+    def get_queryset(self):
+        queryset = Tour.objects.all()
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        min_duration = self.request.query_params.get('min_duration')
+        max_duration = self.request.query_params.get('max_duration')
+        wilaya = self.request.query_params.get('wilaya')
+
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+        if min_duration:
+            queryset = queryset.filter(duration__gte=min_duration)
+        if max_duration:
+            queryset = queryset.filter(duration__lte=max_duration)
+        if wilaya:
+            queryset = queryset.filter(wilaya__name=wilaya)
+
+        return queryset
 
     def perform_create(self, serializer):
-        serializer.save(guide=self.request.user.guide)
+        serializer.save(guide=self.request.user.guide)  
 
 
     @action(detail=True, methods=['POST'], url_path='add-images')
@@ -40,3 +63,10 @@ class TourViewSet(viewsets.ModelViewSet):
                 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['GET'], url_path='for-guide')
+    def list_guide_tours(self, request):
+        guide = request.user.profile
+        tours = Tour.objects.filter(guide=guide)
+        serializer = TourSerializer(tours, many=True)
+        return Response(serializer.data)

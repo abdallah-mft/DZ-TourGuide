@@ -1,12 +1,13 @@
 from decimal import Decimal
 from django.db import models
 from cloudinary.models import CloudinaryField
-from guides.models import GuideProfile
+from guides.models import GuideProfile, Wilaya
 
 class Tour(models.Model):    
     title = models.CharField(max_length=200)
     description = models.TextField()
     guide = models.ForeignKey(GuideProfile, on_delete=models.CASCADE, related_name='tours')
+    wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL, null=True, related_name='tours')
     duration = models.DurationField()
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     # start_place = models.CharField(max_length=200)
