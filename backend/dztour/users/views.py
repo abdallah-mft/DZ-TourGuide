@@ -17,7 +17,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.password_validation import validate_password
 import random 
 import threading
-
+from django.db import transaction
 
 User = get_user_model()
 
