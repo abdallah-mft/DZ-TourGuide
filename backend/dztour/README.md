@@ -387,8 +387,20 @@ Irreversible.
 **GET** `/tours/`
 **Auth**: Public
 
-Supports pagination and filtering by `wilaya`, `category`, and `price_range`.
+Returns a list of tours. Supports search and filtering by Duration rang, price range, and Wilaya.
 
+**Query Parameters**
+
+| Parameter      | Type             | Description                         |
+| -------------- | ---------------- | ----------------------------------- |
+| `search`       | string           | Search within title and description |
+| `wilaya`       | string           | Filter by wilaya code               |
+| `min_price`    | float            | Filter by minimum price             |
+| `max_price`    | float            | Filter by maximum price             |
+| `min_duration` | string (HH:MM:SS)| Filter by minimum duration          |
+| `max_duration` | string (HH:MM:SS)| Filter by maximum duration          |
+
+**Response**
 ```json
 [
   {
@@ -413,6 +425,7 @@ Supports pagination and filtering by `wilaya`, `category`, and `price_range`.
 **GET** `/tours/{id}/`
 **Auth**: Public
 
+**Response**
 ```json
 {
   "id": 1,
@@ -435,15 +448,15 @@ Supports pagination and filtering by `wilaya`, `category`, and `price_range`.
 **POST** `/tours/`
 **Auth**: Guide only
 
+**Body:**
 | Field       | Type             | Required |
 | ----------- | ---------------- | -------- |
 | title       | text             | Yes      |
 | description | text             | Yes      |
 | duration    | string (HH:MM:SS)| Yes      |
 | wilaya      | int              | Yes      |
-| images      | files            | No       |
 
-**Response**
+**Response:**
 ```json
 {
   "id": 1,
@@ -471,7 +484,7 @@ Supports pagination and filtering by `wilaya`, `category`, and `price_range`.
 **PATCH** `/tours/{id}/`
 **Auth**: Guide (Tour owner only)
 
-Partial updates for title, description, price, or images.
+Updates for title, description, price, or images.
 
 ---
 
@@ -480,3 +493,53 @@ Partial updates for title, description, price, or images.
 **Auth**: Guide (Tour owner only)
 
 Removes the tour and associated media references.
+
+---
+
+### List Tours of the Authenticated Guide
+**GET** `/tours/for-guide/`
+**Auth**: Guide only
+
+Returns a list of tours created by the authenticated guide.
+
+----
+
+### Add Tour Image
+**POST** `/tours/{tour-id}/add-images/`
+**Auth**: Guide (Tour owner only)
+
+**Body:**
+| Field | Type         | Required |
+| ----- | ----         | -------- |
+| image | List( file ) | Yes      |
+
+**Response:**
+```json
+{
+    "status": "Images uploaded successfully",
+    "tour_id": 1,
+    "count": 2,
+    "images": [
+        {
+            "id": 1,
+            "tour": 1,
+            "image": "https://res.cloudinary.com/...",
+            "created_at": "2025-01-01T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "tour": 1,
+            "image": "https://res.cloudinary.com/...",
+            "created_at": "2025-01-01T10:00:00Z"
+        }
+    ]
+}
+```
+
+---
+
+### Delete Tour Image
+**DELETE** `/tours/delete-image/{image-id}/`
+**Auth**: Guide (Tour owner only)
+
+----

@@ -31,12 +31,12 @@ class TourViewSet(viewsets.ModelViewSet):
         if max_duration:
             queryset = queryset.filter(duration__lte=max_duration)
         if wilaya:
-            queryset = queryset.filter(wilaya__name=wilaya)
+            queryset = queryset.filter(wilaya__code=wilaya)
 
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(guide=self.request.user.guide)  
+        serializer.save(guide=self.request.user.profile)  
 
 
     @action(detail=False, methods=['GET'], url_path='for-guide')
