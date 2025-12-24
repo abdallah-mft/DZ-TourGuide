@@ -27,7 +27,7 @@ class CertificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certifications
         fields = ['id', 'name', 'file']
-        read_only_fields = ['id']
+        read_only_fields = ['id']   
 
 
 class GuideProfileSerializer(serializers.ModelSerializer):
