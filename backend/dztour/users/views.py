@@ -15,6 +15,9 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.password_validation import validate_password
+import random 
+import threading
+from django.db import transaction
 
 User = get_user_model()
 
@@ -23,8 +26,30 @@ CACHE_PREFIX = "otp_"
 ATTEMPT_PREFIX = "attempt_"
 RESET_PREFIX = "reset_"
 
+
+class EmailThread(threading.Thread):
+    def __init__(self, subject, message, recipient_list):
+        self.subject = subject
+        self.message = message
+        self.recipient_list = recipient_list
+        threading.Thread.__init__(self)
+
+    def run(self):
+        try:
+            send_mail(
+                self.subject,
+                self.message,
+                settings.DEFAULT_FROM_EMAIL,
+                self.recipient_list,
+                fail_silently=False,
+            )
+        except Exception as e:
+            
+            print(f"Failed to send email: {e}")
+
 def generate_otp():
-    return f"{random.randint(1000, 9999)}"
+    
+    return f"{random.randint(100000, 999999)}" 
 
 class RegisterView(APIView):
     throttle_classes = [AnonRateThrottle] 
@@ -33,40 +58,43 @@ class RegisterView(APIView):
     def post(self, request):
         email = request.data.get('email')
         
-        existing_user = User.objects.filter(email=email).first()
         
-        if existing_user:
-            if existing_user.is_verified:
-                return Response({"detail": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                user = existing_user
-        else:
-            serializer = UserRegistrationSerializer(data=request.data)
-            if serializer.is_valid():
-                user = serializer.save()
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        otp = generate_otp()
-        cache_key = f"{CACHE_PREFIX}{user.email}"
-        cache.set(cache_key, otp, timeout=OTP_EXP_SECONDS)
-
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user and existing_user.is_verified:
+            return Response({"detail": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
         
         try:
-            send_mail(
-                subject="Verify your account",
-                message=f"Your verification code is: {otp}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            return Response({"detail": "Failed to send email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            with transaction.atomic():
+                if existing_user and not existing_user.is_verified:
+                    user = existing_user
+                else:
+                    serializer = UserRegistrationSerializer(data=request.data)
+                    if serializer.is_valid():
+                        user = serializer.save()
+                    else:
+                        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
-            "message": "User registered. Please verify your email.",
-            "email": user.email
-        }, status=status.HTTP_201_CREATED)
+                otp = generate_otp()
+                cache_key = f"{CACHE_PREFIX}{user.email}"
+                cache.set(cache_key, otp, timeout=OTP_EXP_SECONDS)
+
+                
+                
+                EmailThread(
+                    subject="Verify your account",
+                    message=f"Your verification code is: {otp}",
+                    recipient_list=[user.email]
+                ).start()
+
+            return Response({
+                "message": "User registered. Please verify your email.",
+                "email": user.email
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({"detail": "An error occurred during registration."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class VerifyEmailView(APIView):
@@ -86,19 +114,16 @@ class VerifyEmailView(APIView):
         if not cached_otp:
             return Response({"detail": "OTP expired or invalid."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if cached_otp != otp:
+        if str(cached_otp) != str(otp): 
             return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
-        
         try:
             user = User.objects.get(email=email)
             user.is_verified = True
             user.save()
             
-            
             cache.delete(cache_key)
 
-            
             refresh = RefreshToken.for_user(user)
             return Response({
                 "message": "Email verified successfully.",
@@ -164,26 +189,20 @@ class ResendOTPView(APIView):
         if user.is_verified:
             return Response({"detail": "Email is already verified."}, status=status.HTTP_400_BAD_REQUEST)
 
-        
         cache_key = f"{CACHE_PREFIX}{user.email}"
         attempt_key = f"{ATTEMPT_PREFIX}{user.email}"
         cache.delete(cache_key)
         cache.delete(attempt_key)
         
-        
         otp = generate_otp()
         cache.set(cache_key, otp, timeout=OTP_EXP_SECONDS)
 
-        try:
-            send_mail(
-                subject="Verify your account",
-                message=f"Your new verification code is: {otp}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-        except Exception:
-            return Response({"detail": "Failed to send email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        EmailThread(
+            subject="Verify your account",
+            message=f"Your new verification code is: {otp}",
+            recipient_list=[user.email]
+        ).start()
 
         return Response({"message": "New OTP sent successfully."}, status=status.HTTP_200_OK)
 
@@ -203,14 +222,15 @@ class PasswordResetRequestView(APIView):
             cache_key = f"{RESET_PREFIX}{email}"
             cache.set(cache_key, otp, timeout=OTP_EXP_SECONDS)
             
-            send_mail(
+            
+            EmailThread(
                 subject="Password Reset Code",
                 message=f"Your password reset code is: {otp}\n\nThis code expires in 15 minutes.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+                recipient_list=[user.email]
+            ).start()
+            
         except User.DoesNotExist:
+            
             pass
         
         return Response({"detail": "If the email exists, a reset code has been sent."})
@@ -231,7 +251,7 @@ class PasswordResetConfirmView(APIView):
         cache_key = f"{RESET_PREFIX}{email}"
         cached_otp = cache.get(cache_key)
 
-        if not cached_otp or cached_otp != otp:
+        if not cached_otp or str(cached_otp) != str(otp):
             return Response({"detail": "Invalid or expired OTP."}, status=400)
 
         try:
