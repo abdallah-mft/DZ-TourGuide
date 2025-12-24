@@ -109,3 +109,216 @@ Expect a technical exploration of your work.
 **Debug a scenario:**
 
 "A tourist is trying to book a tour in Algiers for tomorrow, but the weather section isn't displaying. Describe your debugging process. How would you check if your API key is correct? How would you inspect the request sent to the weather API and the response received? Are there any logs in place to trace these external calls?"
+
+
+
+# DZ-TourGuide — Backend System Design (Django / DRF)
+
+## 1. Architecture Overview
+- **Backend:** Django + Django REST Framework
+- **Database:** PostgreSQL (option: PostGIS for future geo-search)
+- **File Storage:** Cloudinary
+- **Auth:** JWT (djangorestframework-simplejwt)
+- **External API:** OpenWeatherMap (server-side)
+- **Caching:** Redis (weather, booking reminders)
+- **Background Jobs:** Celery + Redis/RabbitMQ
+- **Monitoring / Logs:** Sentry + structured logs
+
+---
+
+## 2. Models Overview
+
+### User
+- `id`, `email`, `password`, `first_name`, `last_name`, `role` (`tourist` | `guide`), `is_active`, `created_at`
+
+### GuideProfile
+- `user` (OneToOne -> User)
+- `photo_url`, `biography`, `languages` (Array/Text)
+- `base_price_half_day`, `base_price_full_day`, `price_per_extra_hour`
+- `certifications_files` (visible only to admin)
+- `wilayas` (ManyToMany -> Wilaya)
+- `created_at`, `verified` (bool)
+- `excluded_communes` (optional, JSON or M2M)
+
+### Wilaya
+- `id`, `name`, `code`, `communes` (optional JSON/M2M)
+
+### Tour
+- `id`, `guide` (FK), `title`, `description`
+- `duration_minutes`, `price_calculated` (Decimal)
+- `photos`, `start_point_name`, `start_lat`, `start_lng`
+- `wilaya` (FK -> Wilaya)
+- `created_at`, `is_active`
+
+### BookingRequest
+- `id`, `tour` (FK), `tourist` (FK)
+- `requested_start_datetime`, `requested_duration_minutes`
+- `status` (`pending`|`accepted`|`rejected`|`proposed`|`cancelled`)
+- `total_price`, `created_at`, `guide_response_deadline`
+
+### Review
+- `id`, `tour` (FK), `tourist` (FK)
+- `rating` (1–5), `comment`, `created_at`
+
+### Availability (Optional)
+- `id`, `guide` (FK)
+- `date`, `start_time`, `end_time`, `is_available`
+
+### WeatherCache (Optional)
+- `id`, `tour_id`, `date`, `weather_payload_json`, `fetched_at`
+
+---
+
+## 3. Architecture Decisions
+- **Wilaya table vs geo-spatial:** simple table sufficient for MVP; PostGIS optional for distance queries.
+- **Weather API:** server-side call → protects API key + central caching + logging.
+- **Price Calculation:** grid stored in `GuideProfile`; auto-calculation on Tour creation.
+- **Booking:** "request" model, guide validates within 24h.
+
+---
+
+## 4. API Division (2 Developers)
+
+### Dev A — Core & Guide Management
+- **Auth & User:**
+  - `POST /api/auth/register/` ✔️
+  - `POST /api/auth/token/` ✔️
+  - `GET /api/auth/me/` ✔️
+  - `GET /api/auth/token/refresh/` ✔
+  - `GET /api/auth/register/verify/` ✔
+  - `GET /api/auth/logout/` ✔
+- **GuideProfile & Wilayas:**
+  - `GET /api/guides/{id}/`
+  - `PUT /api/guides/{id}/`
+  - `POST /api/guides/{id}/certifications/`
+  - `GET /api/wilayas/`
+  - `POST /api/wilayas/` (admin)
+- **Tours:**
+  - `POST /api/guides/{id}/tours/` → calculates `price_calculated`
+  - `GET /api/tours/`
+  - `GET /api/tours/{id}/`
+  - `PUT /api/tours/{id}/`
+
+### Dev B — Search, Booking, Weather, Reviews
+- **Search:**
+  - `GET /api/search/tours/?wilaya=Alger&lang=fr`
+- **Booking:**
+  - `POST /api/tours/{id}/bookings/`
+  - `GET /api/guides/{id}/bookings/`
+  - `POST /api/bookings/{id}/action/`
+- **Weather:**
+  - `GET /api/tours/{id}/weather/?date=YYYY-MM-DD` → Redis cache, OpenWeatherMap fallback
+- **Reviews:**
+  - `POST /api/tours/{id}/reviews/`
+  - `GET /api/guides/{id}/reviews/`
+- **Dashboard:**
+  - `GET /api/guides/{id}/dashboard/`
+  - `POST /api/notifications/` (background tasks)
+
+---
+
+## Auth ✔
+
+````markdown
+# DZ-TourGuide — Apps & API Endpoints
+
+This file lists all backend apps and their corresponding API endpoints for the DZ-TourGuide project.
+
+---
+
+## 1. users — Authentication & User Profiles
+**Purpose:** Handle registration, login, JWT auth, and user info.  
+
+**Endpoints:**
+```http
+POST   /api/auth/register/          # Register a new user ✔
+POST   /api/auth/token/             # Login, returns JWT ✔
+POST   /api/auth/token/refresh/     # Refresh JWT ✔
+GET    /api/auth/me/                # Get current user info ✔
+PUT    /api/auth/me/                # Update user profile ✔
+````
+
+---
+
+## 2. common — Shared Models & Utilities
+
+**Purpose:** Shared models and helpers (Wilaya, Availability, WeatherCache, price calc, notifications)
+
+**Endpoints:**
+
+```http
+GET    /api/wilayas/               # List all wilayas
+POST   /api/wilayas/               # Create wilaya (admin only)
+```
+
+---
+
+## 3. guides — Guide Profiles & Management
+
+**Purpose:** Handle guide profiles, certifications, tours, and dashboard
+
+**Endpoints:**
+
+```http
+GET    /api/guides/{id}/           # Fetch guide profile
+PUT    /api/guides/{id}/           # Update guide profile
+POST   /api/guides/{id}/certifications/ # Upload certifications (admin only)
+GET    /api/guides/{id}/tours/     # List tours by guide
+POST   /api/guides/{id}/tours/     # Create a tour for the guide
+GET    /api/guides/{id}/dashboard/ # Guide dashboard (bookings, earnings, reviews)
+```
+
+---
+
+## 4. tours — Tour Management & Search
+
+**Purpose:** Manage tours independently and allow search/filtering
+
+**Endpoints:**
+
+```http
+GET    /api/tours/                 # List all active tours
+GET    /api/tours/{id}/            # Get tour details
+PUT    /api/tours/{id}/            # Update tour details
+GET    /api/search/tours/?wilaya={name}&lang={lang} # Search tours
+```
+
+---
+
+## 5. bookings — Booking Requests & Actions
+
+**Purpose:** Handle tourist bookings and guide responses
+
+**Endpoints:**
+
+```http
+POST   /api/tours/{id}/bookings/   # Create a booking request
+GET    /api/guides/{id}/bookings/  # List bookings for a guide
+POST   /api/bookings/{id}/action/  # Guide accepts/rejects/proposes new time
+POST   /api/notifications/         # Trigger notifications/reminders (background tasks)
+```
+
+---
+
+## 6. reviews — Tour Reviews
+
+**Purpose:** Handle reviews and ratings for tours
+
+**Endpoints:**
+
+```http
+POST   /api/tours/{id}/reviews/     # Submit a review
+GET    /api/guides/{id}/reviews/    # List all reviews for a guide
+```
+
+---
+
+## 7. weather — External Weather API
+
+**Purpose:** Fetch tour weather and cache it
+
+**Endpoints:**
+
+```http
+GET    /api/tours/{id}/weather/?date=YYYY-MM-DD # Return cached or live weather
+```
