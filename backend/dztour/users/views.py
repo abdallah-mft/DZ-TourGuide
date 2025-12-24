@@ -16,6 +16,7 @@ User = get_user_model()
 
 OTP_EXP_SECONDS = getattr(settings, "EMAIL_VERIFICATION_EXPIRY_SECONDS", 900)
 CACHE_PREFIX = "otp_"
+ATTEMPT_PREFIX = "attempt_"
 
 def generate_otp():
     return f"{random.randint(1000, 9999)}"
@@ -65,6 +66,7 @@ class RegisterView(APIView):
 
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AnonRateThrottle]
 
     def post(self, request):
         email = request.data.get('email')
@@ -130,7 +132,7 @@ class UserProfileView(APIView):
         return Response(s.errors, status=400)
 
 
-class LogoutView(APIView): # Blacklisting the refresh token 
+class LogoutView(APIView): 
     permission_classes = [permissions.IsAuthenticated]
     def post (self , request ):
         try:
@@ -138,4 +140,45 @@ class LogoutView(APIView): # Blacklisting the refresh token
             return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e :
             return Response({"detail": "Invalid refresh token."}, status=status.HTTP_400_BAD_REQUEST)
+
+class ResendOTPView(APIView):
+    throttle_classes = [AnonRateThrottle]
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_verified:
+            return Response({"detail": "Email is already verified."}, status=status.HTTP_400_BAD_REQUEST)
+
         
+        cache_key = f"{CACHE_PREFIX}{user.email}"
+        attempt_key = f"{ATTEMPT_PREFIX}{user.email}"
+        cache.delete(cache_key)
+        cache.delete(attempt_key)
+        
+        
+        otp = generate_otp()
+        cache.set(cache_key, otp, timeout=OTP_EXP_SECONDS)
+
+        try:
+            send_mail(
+                subject="Verify your account",
+                message=f"Your new verification code is: {otp}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception:
+            return Response({"detail": "Failed to send email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "New OTP sent successfully."}, status=status.HTTP_200_OK)
+

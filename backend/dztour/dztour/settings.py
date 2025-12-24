@@ -154,6 +154,13 @@ else:
     }
 
 
+CACHES = { # python manage.py createcachetable
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
+
 
 
 AUTH_PASSWORD_VALIDATORS = [

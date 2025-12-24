@@ -9,4 +9,5 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', UserProfileView.as_view(), name='me'),
     path('logout/',LogoutView.as_view() , name='logout'),
+    path('register/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
 ]
