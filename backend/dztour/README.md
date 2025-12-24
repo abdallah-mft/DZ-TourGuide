@@ -77,7 +77,7 @@ Registers a user and sends an OTP to the email address.
 ```json
 {
   "email": "user@example.com",
-  "otp": "483921"
+  "otp": "4832"
 }
 ```
 
@@ -85,6 +85,7 @@ Registers a user and sends an OTP to the email address.
 
 ```json
 {
+  "message": "Email verified successfully.",
   "user": {
     "id": 1,
     "email": "user@example.com",
@@ -99,6 +100,35 @@ Registers a user and sends an OTP to the email address.
 
 * `400` – invalid or expired OTP
 * `404` – email not found
+
+---
+
+### Resend OTP
+
+**POST** `/auth/register/resend-otp/`
+
+Resends a new OTP to the user's email. Previous OTP is invalidated.
+
+**Body**
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response**
+
+```json
+{
+  "message": "New OTP sent successfully."
+}
+```
+
+**Errors**
+
+* `400` – email already verified
+* `404` – user not found
 
 ---
 
@@ -206,6 +236,74 @@ Blacklists the refresh token.
   "refresh": "<jwt_refresh>"
 }
 ```
+
+---
+
+### Password Reset Request
+
+**POST** `/auth/password/reset/`
+
+Sends a 4-digit OTP to the user's email for password reset.
+
+**Body**
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response**
+
+```json
+{
+  "detail": "If the email exists, a reset code has been sent."
+}
+```
+
+**Notes**
+
+* Does not reveal if email exists (security)
+* OTP expires in 15 minutes
+* User must be verified to reset password
+
+---
+
+### Password Reset Confirm
+
+**POST** `/auth/password/confirm/`
+
+Resets the user's password using the OTP received via email.
+
+**Body**
+
+```json
+{
+  "email": "user@example.com",
+  "otp": "4821",
+  "new_password": "NewSecurePass123!"
+}
+```
+
+**Response**
+
+```json
+{
+  "detail": "Password reset successful."
+}
+```
+
+**Errors**
+
+* `400` – invalid/expired OTP, weak password, or missing fields
+* `404` – user not found
+
+**Password Requirements**
+
+* Minimum 8 characters
+* Cannot be too similar to user info
+* Cannot be a common password
+* Cannot be entirely numeric
 
 ---
 
