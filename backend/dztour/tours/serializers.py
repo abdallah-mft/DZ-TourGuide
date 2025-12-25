@@ -18,7 +18,7 @@ class TourSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['guide', 'price']
 
-class BookingSerializer(serializers.ModelSerializer):
+class DetailedBookingSerializer(serializers.ModelSerializer):
     tour = TourSerializer(read_only=True)
     tourist = UserSerializer(read_only=True)
 
@@ -26,6 +26,21 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = '__all__'
         read_only_fields = ('tour', 'tourist', 'status', 'created_at', 'updated_at')
+
+
+class MinimalBookingSerializer(serializers.ModelSerializer):
+    tour = serializers.CharField(source='tour.title', read_only=True)
+    tourist = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = '__all__'
+        read_only_fields = ('tour', 'tourist', 'status', 'created_at', 'updated_at')
+
+    def get_tourist(self, obj):
+        if obj.tourist:
+            return f"{obj.tourist.first_name} {obj.tourist.last_name}".strip() or obj.tourist.email
+        return None
 
     def validate_date_time(self, value):
         if value < timezone.now():

@@ -7,7 +7,7 @@ from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import get_object_or_404
 
 from .models import Tour, TourPicture, Booking
-from .serializers import TourSerializer, TourPictureSerializer, BookingSerializer
+from .serializers import TourSerializer, TourPictureSerializer, DetailedBookingSerializer, MinimalBookingSerializer
 from .permissions import IsTheGuideOwnerOrReadOnly
 
 class TourViewSet(viewsets.ModelViewSet):
@@ -81,8 +81,12 @@ class TourViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
-    serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return DetailedBookingSerializer
+        return MinimalBookingSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -168,7 +172,7 @@ def create_booking(request, tour_id):
         return Response({"error": "Only tourists can book tours"}, status=status.HTTP_403_FORBIDDEN)
 
     tour = get_object_or_404(Tour, pk=tour_id)
-    serializer = BookingSerializer(data=request.data)
+    serializer = DetailedBookingSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.save(tour=tour, tourist=request.user)
     

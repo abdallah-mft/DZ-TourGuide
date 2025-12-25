@@ -56,4 +56,4 @@ class Booking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.tourist.username} - {self.tour.title} ({self.requested_time})"
+        return f"{self.tourist.username} - {self.tour.title} ({self.date_time})"
