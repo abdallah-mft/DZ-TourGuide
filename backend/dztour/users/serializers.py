@@ -27,10 +27,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         parts = full_name.split(' ', 1)
         validated_data['first_name'] = parts[0]
         validated_data['last_name'] = parts[1] if len(parts) > 1 else ''
+        validated_data['is_verified'] = False
         
         user = User.objects.create_user(**validated_data)
-        user.is_verified = False
-        user.save()
         return user
 
 
