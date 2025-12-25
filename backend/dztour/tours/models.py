@@ -11,8 +11,8 @@ class Tour(models.Model):
     wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL, null=True, related_name='tours')
     duration = models.DurationField()
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    # start_place = models.CharField(max_length=200)
-    # max_participants = models.PositiveIntegerField(default=10)
+    start_point_latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    start_point_longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     def save(self, *args, **kwargs):
         tour_hours = Decimal(self.duration.total_seconds() / 3600)

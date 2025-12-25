@@ -508,6 +508,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
     "price": "25000.00",
     "duration_hours": 72,
     "wilaya": "33",
+    "start_point_latitude": "24.492595",
+    "start_point_longitude": "9.378052",
     "guide": {
       "id": 7,
       "first_name": "Ahmed"
@@ -532,6 +534,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   "price": "25000.00",
   "duration_hours": 72,
   "wilaya": "33",
+  "start_point_latitude": "24.492595",
+  "start_point_longitude": "9.378052",
   "guide": {
     "id": 7,
     "first_name": "Ahmed"
@@ -547,12 +551,14 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
 **Auth**: Guide only
 
 **Body:**
-| Field       | Type             | Required |
-| ----------- | ---------------- | -------- |
-| title       | text             | Yes      |
-| description | text             | Yes      |
-| duration    | string (HH:MM:SS)| Yes      |
-| wilaya      | int              | Yes      |
+| Field                  | Type             | Required | Description                          |
+| ---------------------- | ---------------- | -------- | ------------------------------------ |
+| title                  | text             | Yes      | Tour title                           |
+| description            | text             | Yes      | Tour description                     |
+| duration               | string (HH:MM:SS)| Yes      | Tour duration                        |
+| wilaya                 | int              | Yes      | Wilaya code                          |
+| start_point_latitude   | decimal          | Yes      | Start point latitude (-90 to 90)     |
+| start_point_longitude  | decimal          | Yes      | Start point longitude (-180 to 180)  |
 
 **Response:**
 ```json
@@ -572,7 +578,9 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   "title": "Sahara Sunset Trek",
   "description": "A 3-day journey through the dunes of Tassili",
   "duration": "72:00:00",
-  "price": "25000.00"
+  "price": "25000.00",
+  "start_point_latitude": "36.753768",
+  "start_point_longitude": "3.058756"
 }
 ```
 

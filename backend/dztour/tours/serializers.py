@@ -18,6 +18,16 @@ class TourSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['guide', 'price']
 
+    def validate_start_point_latitude(self, value):
+        if value is not None and (value < -90 or value > 90):
+            raise serializers.ValidationError("Latitude must be between -90 and 90 degrees.")
+        return value
+
+    def validate_start_point_longitude(self, value):
+        if value is not None and (value < -180 or value > 180):
+            raise serializers.ValidationError("Longitude must be between -180 and 180 degrees.")
+        return value
+
 class DetailedBookingSerializer(serializers.ModelSerializer):
     tour = TourSerializer(read_only=True)
     tourist = UserSerializer(read_only=True)
