@@ -4,6 +4,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Case, When, Value, IntegerField, Q
+from django.shortcuts import get_object_or_404
 
 from .models import Tour, TourPicture, Booking
 from .serializers import TourSerializer, TourPictureSerializer, BookingSerializer
@@ -53,7 +54,7 @@ class TourViewSet(viewsets.ModelViewSet):
         image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], url_path='add-images')
     def add_images(self, request, pk=None):
         tour = self.get_object()
         images = request.FILES.getlist('images')
@@ -78,17 +79,6 @@ class TourViewSet(viewsets.ModelViewSet):
                 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['POST'])
-    def book(self, request, pk=None):
-        if request.user.role != 'tourist':
-            return Response({"error": "Only tourists can book tours"}, status=status.HTTP_403_FORBIDDEN)
-
-        tour = self.get_object()
-        serializer = BookingSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(tour=tour, tourist=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     serializer_class = BookingSerializer
@@ -152,7 +142,7 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         booking.save()
         return Response({"message": "Booking cancelled successfully"}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], url_path='suggest-new-date')
     def suggest_new_date(self, request, pk=None):
         booking = self.get_object()
         
@@ -171,3 +161,15 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         booking.save()
         return Response({"message": "New date suggested successfully"}, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_booking(request, tour_id):
+    if request.user.role != 'tourist':
+        return Response({"error": "Only tourists can book tours"}, status=status.HTTP_403_FORBIDDEN)
+
+    tour = get_object_or_404(Tour, pk=tour_id)
+    serializer = BookingSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(tour=tour, tourist=request.user)
+    
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
