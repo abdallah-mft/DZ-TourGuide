@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db import models
 from cloudinary.models import CloudinaryField
 from guides.models import GuideProfile, Wilaya
+from users.models import User
 
 class Tour(models.Model):    
     title = models.CharField(max_length=200)
@@ -27,7 +28,6 @@ class Tour(models.Model):
         
     def __str__(self):
         return self.title
-    
 
 class TourPicture(models.Model):    
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='pictures')
@@ -37,3 +37,23 @@ class TourPicture(models.Model):
     def __str__(self):
         return f"{self.tour.title} - Picture {self.id}"
 
+
+class Booking(models.Model):
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+        ("rejected", "Rejected"),
+        ("cancelled", "Cancelled"),
+        ("negotiated", "Negotiated")
+    )
+
+    tour = models.ForeignKey(Tour, on_delete=models.SET_NULL, null=True, related_name='requests')
+    tourist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tour_requests')
+    requested_time = models.DateTimeField()
+    number_of_participants = models.PositiveIntegerField(default=1)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.tourist.username} - {self.tour.title} ({self.requested_time})"
