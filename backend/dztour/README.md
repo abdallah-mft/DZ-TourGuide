@@ -641,3 +641,239 @@ Returns a list of tours created by the authenticated guide.
 **Auth**: Guide (Tour owner only)
 
 ----
+
+## Bookings
+
+The booking system allows tourists to book tours and guides to manage incoming booking requests. Bookings go through different status transitions based on actions from both parties.
+
+**Status Values:**
+- `pending` - Initial status when a booking is created
+- `negotiated` - Date/time has been proposed by either party
+- `accepted` - Guide has accepted the booking
+- `rejected` - Guide has rejected the booking
+- `cancelled` - Tourist has cancelled the booking
+
+---
+
+### Create Booking
+**POST** `/tours/{tour_id}/book/`
+**Auth**: Tourist only
+
+Creates a new booking for a specific tour.
+
+**Body:**
+```json
+{
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "tour": {
+    "id": 5,
+    "title": "Sahara Sunset Trek",
+    "description": "A 3-day journey...",
+    "price": "25000.00",
+    "duration": "72:00:00",
+    "guide": {
+      "id": 7,
+      "email": "guide@example.com",
+      "first_name": "Ahmed",
+      "last_name": "Benali"
+    }
+  },
+  "tourist": {
+    "id": 3,
+    "email": "tourist@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  },
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3,
+  "status": "pending",
+  "created_at": "2025-12-25T10:00:00Z",
+  "updated_at": "2025-12-25T10:00:00Z"
+}
+```
+
+**Errors:**
+- `403` - User is not a tourist or trying to book their own tour
+- `400` - Date is in the past
+
+---
+
+### List Bookings
+**GET** `/tours/bookings/`
+**Auth**: Required
+
+Returns bookings visible to the authenticated user:
+- **Tourists** see bookings they created
+- **Guides** see bookings for their tours
+
+**Query Parameters:**
+
+| Parameter | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| `status`  | string | Filter by status (e.g., pending, accepted) |
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "tour": "Sahara Sunset Trek",
+    "tourist": "John Doe",
+    "date_time": "2025-12-30T14:00:00Z",
+    "number_of_participants": 3,
+    "status": "pending",
+    "created_at": "2025-12-25T10:00:00Z",
+    "updated_at": "2025-12-25T10:00:00Z"
+  }
+]
+```
+
+**Notes:**
+- Results are ordered by status priority (negotiated → pending → accepted → rejected → cancelled)
+- Within same status, most recently updated appear first
+
+---
+
+### Retrieve Booking
+**GET** `/tours/bookings/{id}/`
+**Auth**: Required (Tourist or Guide)
+
+Returns detailed information about a specific booking.
+
+**Response:**
+```json
+{
+  "id": 1,
+  "tour": {
+    "id": 5,
+    "title": "Sahara Sunset Trek",
+    "guide": {
+      "id": 7,
+      "first_name": "Ahmed",
+      "last_name": "Benali"
+    }
+  },
+  "tourist": {
+    "id": 3,
+    "first_name": "John",
+    "last_name": "Doe"
+  },
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3,
+  "status": "pending",
+  "created_at": "2025-12-25T10:00:00Z",
+  "updated_at": "2025-12-25T10:00:00Z"
+}
+```
+
+---
+
+### Update Booking
+**PATCH** `/tours/bookings/{id}/`
+**Auth**: Tourist (Booking creator only)
+
+Allows tourists to update booking details before it's accepted.
+
+**Allowed Fields:**
+- `date_time` - The booking date/time
+- `number_of_participants` - Number of people
+
+**Body:**
+```json
+{
+  "date_time": "2025-12-31T15:00:00Z",
+  "number_of_participants": 4
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "date_time": "2025-12-31T15:00:00Z",
+  "number_of_participants": 4
+}
+```
+
+**Restrictions:**
+- Only bookings with status `pending` or `negotiated` can be updated
+- Only the tourist who created the booking can update it
+- Date cannot be in the past
+
+**Errors:**
+- `403` - User is not the booking creator
+- `400` - Booking status doesn't allow updates (accepted/rejected/cancelled)
+- `400` - Date is in the past
+
+---
+
+### Accept Booking
+**POST** `/tours/bookings/{id}/accept/`
+**Auth**: Guide only
+
+Guide accepts a booking request.
+
+**Response:**
+```json
+{
+  "message": "Booking accepted successfully"
+}
+```
+---
+
+### Reject Booking
+**POST** `/tours/bookings/{id}/reject/`
+**Auth**: Guide only
+
+Guide rejects a booking request.
+
+**Response:**
+```json
+{
+  "message": "Booking rejected successfully"
+}
+```
+---
+
+### Cancel Booking
+**POST** `/tours/bookings/{id}/cancel/`
+**Auth**: Tourist only
+
+Tourist cancels their booking.
+
+**Response:**
+```json
+{
+  "message": "Booking cancelled successfully"
+}
+```
+
+---
+
+### Suggest New Date
+**POST** `/tours/bookings/{id}/suggest-new-date/`
+**Auth**: Tourist or Guide
+
+Propose a new date/time for the booking. Changes status to `negotiated`.
+
+**Body:**
+```json
+{
+  "date_time": "2026-01-05T10:00:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "New date suggested successfully"
+}
+```

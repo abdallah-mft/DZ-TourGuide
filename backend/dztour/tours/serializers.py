@@ -46,3 +46,19 @@ class MinimalBookingSerializer(serializers.ModelSerializer):
         if value < timezone.now():
             raise serializers.ValidationError("The booking date cannot be in the past.")
         return value
+
+
+class UpdateBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ['date_time', 'number_of_participants']
+    
+    def validate_date_time(self, value):
+        if value < timezone.now():
+            raise serializers.ValidationError("The booking date cannot be in the past.")
+        return value
+    
+    def validate(self, attrs):
+        if self.instance and self.instance.status not in ['pending', 'negotiated']:
+            raise serializers.ValidationError("Cannot update a booking that has been accepted, rejected, or cancelled.")
+        return attrs

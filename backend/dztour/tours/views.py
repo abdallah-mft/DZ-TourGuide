@@ -7,7 +7,7 @@ from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import get_object_or_404
 
 from .models import Tour, TourPicture, Booking
-from .serializers import TourSerializer, TourPictureSerializer, DetailedBookingSerializer, MinimalBookingSerializer
+from .serializers import TourSerializer, TourPictureSerializer, DetailedBookingSerializer, MinimalBookingSerializer, UpdateBookingSerializer
 from .permissions import IsTheGuideOwnerOrReadOnly
 
 class TourViewSet(viewsets.ModelViewSet):
@@ -80,12 +80,16 @@ class TourViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['status']
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return DetailedBookingSerializer
+        elif self.action in ['update', 'partial_update']:
+            return UpdateBookingSerializer
         return MinimalBookingSerializer
 
     def get_queryset(self):
@@ -103,6 +107,12 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
                 output_field=IntegerField(),
             )
         ).order_by('status_priority', '-updated_at')
+
+    def perform_update(self, serializer):
+        booking = self.get_object()
+        if self.request.user != booking.tourist:
+            raise permissions.PermissionDenied("Only the tourist who created this booking can update it.")
+        serializer.save()
 
     @action(detail=True, methods=['POST'])
     def accept(self, request, pk=None):
