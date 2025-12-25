@@ -1,11 +1,12 @@
-from rest_framework import viewsets, permissions, status, filters
+from rest_framework import viewsets, mixins, permissions, status, filters
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db.models import Case, When, Value, IntegerField, Q
 
-from .models import Tour, TourPicture
-from .serializers import TourSerializer, TourPictureSerializer
+from .models import Tour, TourPicture, Booking
+from .serializers import TourSerializer, TourPictureSerializer, BookingSerializer
 from .permissions import IsTheGuideOwnerOrReadOnly
 
 class TourViewSet(viewsets.ModelViewSet):
@@ -52,7 +53,7 @@ class TourViewSet(viewsets.ModelViewSet):
         image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['POST'], url_path='add-images')
+    @action(detail=True, methods=['POST'])
     def add_images(self, request, pk=None):
         tour = self.get_object()
         images = request.FILES.getlist('images')
@@ -77,4 +78,96 @@ class TourViewSet(viewsets.ModelViewSet):
                 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
+    @action(detail=True, methods=['POST'])
+    def book(self, request, pk=None):
+        if request.user.role != 'tourist':
+            return Response({"error": "Only tourists can book tours"}, status=status.HTTP_403_FORBIDDEN)
+
+        tour = self.get_object()
+        serializer = BookingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(tour=tour, tourist=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+    serializer_class = BookingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Booking.objects.filter(
+            Q(tourist=user) | Q(tour__guide__user=user)
+        ).select_related('tour', 'tourist', 'tour__guide').annotate(
+            status_priority=Case(
+                When(status='negotiated', then=Value(1)),
+                When(status='pending', then=Value(2)),
+                When(status='accepted', then=Value(3)),
+                When(status='rejected', then=Value(4)),
+                When(status='cancelled', then=Value(5)),
+                default=Value(6),
+                output_field=IntegerField(),
+            )
+        ).order_by('status_priority', '-updated_at')
+
+    @action(detail=True, methods=['POST'])
+    def accept(self, request, pk=None):
+        booking = self.get_object()
+        
+        if request.user != booking.tour.guide.user:
+            return Response({"error": "Only the guide can accept this booking"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if booking.status not in ['pending', 'negotiated']:
+            return Response({"error": f"Cannot accept a booking with status: {booking.status}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        booking.status = 'accepted'
+        booking.save()
+        return Response({"message": "Booking accepted successfully"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'])
+    def reject(self, request, pk=None):
+        booking = self.get_object()
+        
+        if request.user != booking.tour.guide.user:
+            return Response({"error": "Only the guide can reject this booking"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if booking.status not in ['pending', 'negotiated']:
+            return Response({"error": f"Cannot reject a booking with status: {booking.status}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        booking.status = 'rejected'
+        booking.save()
+        return Response({"message": "Booking rejected successfully"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'])
+    def cancel(self, request, pk=None):
+        booking = self.get_object()
+        
+        if request.user != booking.tourist:
+            return Response({"error": "Only the tourist can cancel their booking"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if booking.status in ['rejected', 'cancelled']:
+            return Response({"error": "Booking is already cancelled or rejected"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        booking.status = 'cancelled'
+        booking.save()
+        return Response({"message": "Booking cancelled successfully"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'])
+    def suggest_new_date(self, request, pk=None):
+        booking = self.get_object()
+        
+        if booking.status in ['accepted', 'rejected', 'cancelled']:
+            return Response({"error": "Cannot negotiate a closed booking"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        new_date = request.data.get('date_time')
+        if not new_date:
+            return Response({"error": "Date is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer = self.get_serializer(booking, data={'date_time': new_date}, partial=True)
+        serializer.is_valid(raise_exception=True)
+            
+        booking.date_time = serializer.validated_data['date_time']
+        booking.status = 'negotiated'
+        booking.save()
+        return Response({"message": "New date suggested successfully"}, status=status.HTTP_200_OK)
+

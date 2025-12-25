@@ -49,7 +49,7 @@ class Booking(models.Model):
 
     tour = models.ForeignKey(Tour, on_delete=models.SET_NULL, null=True, related_name='requests')
     tourist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tour_requests')
-    requested_time = models.DateTimeField()
+    date_time = models.DateTimeField()
     number_of_participants = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)

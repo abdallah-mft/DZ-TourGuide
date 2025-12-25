@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Tour, TourPicture, Booking
 from users.serializers import UserSerializer
 
@@ -18,10 +19,15 @@ class TourSerializer(serializers.ModelSerializer):
         read_only_fields = ['guide', 'price']
 
 class BookingSerializer(serializers.ModelSerializer):
-    tour = TourSerializer()
-    tourist = UserSerializer()
+    tour = TourSerializer(read_only=True)
+    tourist = UserSerializer(read_only=True)
 
     class Meta:
         model = Booking
         fields = '__all__'
         read_only_fields = ('tour', 'tourist', 'status', 'created_at', 'updated_at')
+
+    def validate_date_time(self, value):
+        if value < timezone.now():
+            raise serializers.ValidationError("The booking date cannot be in the past.")
+        return value
