@@ -120,7 +120,7 @@ class VerifyEmailView(APIView):
         try:
             user = User.objects.get(email=email)
             user.is_verified = True
-            user.save()
+            user.save(update_fields=['is_verified'])
             
             cache.delete(cache_key)
 
@@ -265,7 +265,7 @@ class PasswordResetConfirmView(APIView):
             return Response({"detail": e.messages}, status=400)
 
         user.set_password(new_password)
-        user.save()
+        user.save(update_fields=['password'])
         cache.delete(cache_key)
         
         return Response({"detail": "Password reset successful."})

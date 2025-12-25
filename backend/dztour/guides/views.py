@@ -50,7 +50,9 @@ class GuideProfileViewSet(viewsets.ModelViewSet):
     def me(self, request):
         """Get, update, or delete current user's guide profile."""
         try:
-            profile = GuideProfile.objects.get(user=request.user)
+            profile = GuideProfile.objects.select_related('user').prefetch_related(
+                'languages_spoken', 'wilaya_covered', 'commune_covered', 'certifications'
+            ).get(user=request.user)
         except GuideProfile.DoesNotExist:
             return Response(
                 {"detail": "Guide profile not found."},
