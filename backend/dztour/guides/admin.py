@@ -27,6 +27,8 @@ class GuideProfileAdmin(admin.ModelAdmin):
     list_filter = ['is_verified', 'wilaya_covered']
     search_fields = ['user__email', 'bio']
     readonly_fields = ['created_at', 'updated_at']
+    list_select_related = ['user']
+    filter_horizontal = ['wilaya_covered', 'commune_covered', 'languages_spoken']
 
 
 @admin.register(Certifications)

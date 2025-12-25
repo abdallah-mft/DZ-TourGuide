@@ -66,7 +66,8 @@ class GuideProfile(models.Model):
 
 
     def __str__(self):
-        return f'profile: {self.user.username}'
+        # User has no username
+        return f'profile: {self.user.email}'
 
 class Certifications(models.Model):
     guide_profile = models.ForeignKey(GuideProfile, on_delete=models.CASCADE, related_name='certifications')
