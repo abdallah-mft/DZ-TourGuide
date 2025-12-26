@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     'users' ,
     'guides',
     'tours',
-    'bookings',
     'reviews',
     'common',
     'allauth',

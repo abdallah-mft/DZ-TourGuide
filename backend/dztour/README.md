@@ -508,6 +508,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
     "price": "25000.00",
     "duration_hours": 72,
     "wilaya": "33",
+    "start_point_latitude": "24.492595",
+    "start_point_longitude": "9.378052",
     "guide": {
       "id": 7,
       "first_name": "Ahmed"
@@ -532,6 +534,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   "price": "25000.00",
   "duration_hours": 72,
   "wilaya": "33",
+  "start_point_latitude": "24.492595",
+  "start_point_longitude": "9.378052",
   "guide": {
     "id": 7,
     "first_name": "Ahmed"
@@ -547,12 +551,14 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
 **Auth**: Guide only
 
 **Body:**
-| Field       | Type             | Required |
-| ----------- | ---------------- | -------- |
-| title       | text             | Yes      |
-| description | text             | Yes      |
-| duration    | string (HH:MM:SS)| Yes      |
-| wilaya      | int              | Yes      |
+| Field                  | Type             | Required | Description                          |
+| ---------------------- | ---------------- | -------- | ------------------------------------ |
+| title                  | text             | Yes      | Tour title                           |
+| description            | text             | Yes      | Tour description                     |
+| duration               | string (HH:MM:SS)| Yes      | Tour duration                        |
+| wilaya                 | int              | Yes      | Wilaya code                          |
+| start_point_latitude   | decimal          | Yes      | Start point latitude (-90 to 90)     |
+| start_point_longitude  | decimal          | Yes      | Start point longitude (-180 to 180)  |
 
 **Response:**
 ```json
@@ -572,7 +578,9 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   "title": "Sahara Sunset Trek",
   "description": "A 3-day journey through the dunes of Tassili",
   "duration": "72:00:00",
-  "price": "25000.00"
+  "price": "25000.00",
+  "start_point_latitude": "36.753768",
+  "start_point_longitude": "3.058756"
 }
 ```
 
@@ -641,3 +649,309 @@ Returns a list of tours created by the authenticated guide.
 **Auth**: Guide (Tour owner only)
 
 ----
+
+## Custom Tours
+
+Custom tours allow tourists to suggest their own travel specifications to a specific guide. When a tourist creates a custom tour, a booking is automatically created for it with a `pending` status.
+
+### Create Custom Tour & Booking
+**POST** `/tours/book-custom/`
+**Auth**: Tourist only
+
+Creates both a custom tour specification and an associated booking in a single request.
+
+**Body:**
+| Field            | Type     | Required | Description                              |
+| ---------------- | -------- | -------- | ---------------------------------------- |
+| title            | string   | Yes      | Title for the custom tour                |
+| description      | text     | Yes      | Detailed description of what is wanted   |
+| wilaya           | int      | Yes      | Wilaya code                              |
+| budget           | decimal  | Yes      | Tourist's budget for the tour            |
+| guide            | int      | Yes      | ID of the guide being requested          |
+| date_time        | datetime | Yes      | Proposed date and time                   |
+| num_participants | int      | Yes      | Number of participants                   |
+| latitude         | decimal  | No       | Start point latitude                     |
+| longitude        | decimal  | No       | Start point longitude                    |
+
+**Response:**
+```json
+{
+  "message": "Custom tour and booking created successfully",
+  "custom_tour": {
+    "id": 1,
+    "title": "Private Desert Trek",
+    "description": "...",
+    "guide": { "id": 5, "first_name": "Ahmed", ... },
+    "budget": "50000.00",
+    "wilaya": 33
+  },
+  "booking": {
+    "id": 10,
+    "tour_type": "custom",
+    "date_time": "2025-12-30T10:00:00Z",
+    "status": "pending"
+  }
+}
+```
+
+---
+
+### List Guide Custom Tours
+**GET** `/tours/my-custom-tours/`
+**Auth**: Guide only
+
+Returns a list of custom tour requests assigned to the authenticated guide.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Private Desert Trek",
+    "tourist": { "id": 3, "email": "tourist@example.com", ... },
+    "budget": "50000.00",
+    "created_at": "2025-12-26T23:45:00Z"
+  }
+]
+```
+
+---
+
+## Bookings
+The booking system allows tourists to book tours and guides to manage incoming booking requests. Bookings go through different status transitions based on actions from both parties.
+
+**Status Values:**
+- `pending` - Initial status when a booking is created
+- `negotiated` - Date/time has been proposed by either party
+- `accepted` - Guide has accepted the booking
+- `rejected` - Guide has rejected the booking
+- `cancelled` - Tourist has cancelled the booking
+
+**Structure:** A booking is linked to either a standard **Tour** or a **Custom Tour**. The `tour` field in the response returns the details for whichever type is associated with the booking.
+
+---
+
+### Create Booking
+**POST** `/tours/{tour_id}/book/`
+**Auth**: Tourist only
+
+Creates a new booking for a specific tour.
+
+**Body:**
+```json
+{
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "tour": {
+    "id": 5,
+    "title": "Sahara Sunset Trek",
+    "description": "A 3-day journey...",
+    "price": "25000.00",
+    "duration": "72:00:00",
+    "guide": {
+      "id": 7,
+      "email": "guide@example.com",
+      "first_name": "Ahmed",
+      "last_name": "Benali"
+    }
+  },
+  "tourist": {
+    "id": 3,
+    "email": "tourist@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  },
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3,
+  "status": "pending",
+  "created_at": "2025-12-25T10:00:00Z",
+  "updated_at": "2025-12-25T10:00:00Z"
+}
+```
+
+**Errors:**
+- `403` - User is not a tourist or trying to book their own tour
+- `400` - Date is in the past
+
+---
+
+### List Bookings
+**GET** `/tours/bookings/`
+**Auth**: Required
+
+Returns bookings visible to the authenticated user:
+- **Tourists** see bookings they created
+- **Guides** see bookings for their tours
+
+**Query Parameters:**
+
+| Parameter | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| `status`  | string | Filter by status (e.g., pending, accepted) |
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "tour_title": "Sahara Sunset Trek",
+    "tourist": "John Doe",
+    "tour_type": "regular",
+    "date_time": "2025-12-30T14:00:00Z",
+    "number_of_participants": 3,
+    "status": "pending",
+    "created_at": "2025-12-25T10:00:00Z",
+    "updated_at": "2025-12-25T10:00:00Z"
+  }
+]
+```
+
+**Notes:**
+- Results are ordered by status priority (negotiated → pending → accepted → rejected → cancelled)
+- Within same status, most recently updated appear first
+
+---
+
+### Retrieve Booking
+**GET** `/tours/bookings/{id}/`
+**Auth**: Required (Tourist or Guide)
+
+Returns detailed information about a specific booking.
+
+**Response:**
+```json
+{
+  "id": 1,
+  "tour_type": "regular",
+  "tour": {
+    "id": 5,
+    "title": "Sahara Sunset Trek",
+    "guide": {
+      "id": 7,
+      "first_name": "Ahmed",
+      "last_name": "Benali"
+    }
+  },
+  "tourist": {
+    "id": 3,
+    "first_name": "John",
+    "last_name": "Doe"
+  },
+  "date_time": "2025-12-30T14:00:00Z",
+  "number_of_participants": 3,
+  "status": "pending",
+  "created_at": "2025-12-25T10:00:00Z",
+  "updated_at": "2025-12-25T10:00:00Z"
+}
+```
+
+---
+
+### Update Booking
+**PATCH** `/tours/bookings/{id}/`
+**Auth**: Tourist (Booking creator only)
+
+Allows tourists to update booking details before it's accepted.
+
+**Allowed Fields:**
+- `date_time` - The booking date/time
+- `number_of_participants` - Number of people
+
+**Body:**
+```json
+{
+  "date_time": "2025-12-31T15:00:00Z",
+  "number_of_participants": 4
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "date_time": "2025-12-31T15:00:00Z",
+  "number_of_participants": 4
+}
+```
+
+**Restrictions:**
+- Only bookings with status `pending` or `negotiated` can be updated
+- Only the tourist who created the booking can update it
+- Date cannot be in the past
+
+**Errors:**
+- `403` - User is not the booking creator
+- `400` - Booking status doesn't allow updates (accepted/rejected/cancelled)
+- `400` - Date is in the past
+
+---
+
+### Accept Booking
+**POST** `/tours/bookings/{id}/accept/`
+**Auth**: Guide only
+
+Guide accepts a booking request.
+
+**Response:**
+```json
+{
+  "message": "Booking accepted successfully"
+}
+```
+---
+
+### Reject Booking
+**POST** `/tours/bookings/{id}/reject/`
+**Auth**: Guide only
+
+Guide rejects a booking request.
+
+**Response:**
+```json
+{
+  "message": "Booking rejected successfully"
+}
+```
+---
+
+### Cancel Booking
+**POST** `/tours/bookings/{id}/cancel/`
+**Auth**: Tourist only
+
+Tourist cancels their booking.
+
+**Response:**
+```json
+{
+  "message": "Booking cancelled successfully"
+}
+```
+
+---
+
+### Suggest New Date
+**POST** `/tours/bookings/{id}/suggest-new-date/`
+**Auth**: Tourist or Guide
+
+Propose a new date/time for the booking. Changes status to `negotiated`.
+
+**Body:**
+```json
+{
+  "date_time": "2026-01-05T10:00:00Z"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "New date suggested successfully"
+}
+```
