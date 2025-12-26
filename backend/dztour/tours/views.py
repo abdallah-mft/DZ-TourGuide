@@ -3,11 +3,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import get_object_or_404
 
-from .models import Tour, TourPicture, Booking
-from .serializers import TourSerializer, TourPictureSerializer, DetailedBookingSerializer, MinimalBookingSerializer, UpdateBookingSerializer
+from .models import Tour, TourPicture, Booking, CustomTour
+from .serializers import TourSerializer, TourPictureSerializer, DetailedBookingSerializer, MinimalBookingSerializer, UpdateBookingSerializer, CustomTourSerializer
 from .permissions import IsTheGuideOwnerOrReadOnly
 
 class TourViewSet(viewsets.ModelViewSet):
@@ -79,7 +80,7 @@ class TourViewSet(viewsets.ModelViewSet):
                 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+    
 class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
@@ -177,7 +178,7 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
-def create_booking(request, tour_id):
+def create_regular_booking(request, tour_id):
     if request.user.role != 'tourist':
         return Response({"error": "Only tourists can book tours"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -185,5 +186,46 @@ def create_booking(request, tour_id):
     serializer = DetailedBookingSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.save(tour=tour, tourist=request.user)
-    
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_custom_tour_booking(request):
+    if request.user.role != 'tourist':
+        return Response({"error": "Only tourists can create custom tours"}, status=status.HTTP_403_FORBIDDEN)
+    
+    with transaction.atomic():
+        # Step 1: Create the custom tour
+        custom_tour_data = {
+            'title': request.data.get('title'),
+            'description': request.data.get('description'),
+            'wilaya': request.data.get('wilaya'),
+            'start_point_latitude': request.data.get('start_point_latitude'),
+            'start_point_longitude': request.data.get('start_point_longitude'),
+            'budget': request.data.get('budget'),
+            'guide': request.data.get('guide'),
+        }
+        
+        custom_tour_serializer = CustomTourSerializer(data=custom_tour_data)
+        custom_tour_serializer.is_valid(raise_exception=True)
+        custom_tour = custom_tour_serializer.save(tourist=request.user)
+        
+        # Step 2: Create a booking for the custom tour
+        booking_data = {
+            'date_time': request.data.get('date_time'),
+            'number_of_participants': request.data.get('number_of_participants', 1),
+        }
+        
+        booking_serializer = DetailedBookingSerializer(data=booking_data)
+        booking_serializer.is_valid(raise_exception=True)
+        booking = booking_serializer.save(
+            custom_tour=custom_tour,
+            tourist=request.user
+        )
+        
+        # Return both custom tour and booking information
+        return Response({
+            "message": "Custom tour and booking created successfully",
+            "custom_tour": custom_tour_serializer.data,
+            "booking": DetailedBookingSerializer(booking).data
+        }, status=status.HTTP_201_CREATED)

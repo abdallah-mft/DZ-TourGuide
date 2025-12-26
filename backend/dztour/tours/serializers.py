@@ -30,12 +30,11 @@ class TourSerializer(serializers.ModelSerializer):
 
 class CustomTourSerializer(serializers.ModelSerializer):
     tourist = UserSerializer(read_only=True)
-    guide = UserSerializer(source='guide.user', read_only=True)
 
     class Meta:
         model = CustomTour
         fields = '__all__'
-        read_only_fields = ['tourist', 'guide', 'created_at', 'updated_at']
+        read_only_fields = ['tourist', 'created_at', 'updated_at']
 
     def validate_start_point_latitude(self, value):
         if value is not None and (value < -90 or value > 90):
@@ -46,6 +45,14 @@ class CustomTourSerializer(serializers.ModelSerializer):
         if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError("Longitude must be between -180 and 180 degrees.")
         return value
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.guide and instance.guide.user:
+            representation['guide'] = UserSerializer(instance.guide.user).data
+        else:
+            representation['guide'] = None
+        return representation
 
 class DetailedBookingSerializer(serializers.ModelSerializer):
     tourist = UserSerializer(read_only=True)

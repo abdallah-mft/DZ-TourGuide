@@ -40,16 +40,15 @@ class TourPicture(models.Model):
     def __str__(self):
         return f"{self.tour.title} - Picture {self.id}"
 
-
 class CustomTour(models.Model):
     tourist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='custom_tours')
-    guide = models.ForeignKey(GuideProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='custom_tour_requests')
     title = models.CharField(max_length=200)
     description = models.TextField()
+    guide = models.ForeignKey(GuideProfile, on_delete=models.SET_NULL, null=True, related_name='custom_tours')
     wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL, null=True, related_name='custom_tours')
     start_point_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     start_point_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    budget = models.DecimalField(max_digits=10, decimal_places=2)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -89,8 +88,8 @@ class Booking(models.Model):
         ]
 
     def __str__(self):
-        tour_title = self.tour.title if self.tour else self.custom_tour.title
-        return f"{self.tourist.username} - {tour_title} ({self.date_time})"
+        tour_title = self.custom_tour.title if self.is_custom_tour else self.tour.title
+        return f"{self.tourist.first_name} {self.tourist.last_name} - {tour_title} ({self.date_time})"
 
     def get_tour_object(self):
         return self.tour if self.tour else self.custom_tour
