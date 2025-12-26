@@ -650,8 +650,74 @@ Returns a list of tours created by the authenticated guide.
 
 ----
 
-## Bookings
+## Custom Tours
 
+Custom tours allow tourists to suggest their own travel specifications to a specific guide. When a tourist creates a custom tour, a booking is automatically created for it with a `pending` status.
+
+### Create Custom Tour & Booking
+**POST** `/tours/book-custom/`
+**Auth**: Tourist only
+
+Creates both a custom tour specification and an associated booking in a single request.
+
+**Body:**
+| Field            | Type     | Required | Description                              |
+| ---------------- | -------- | -------- | ---------------------------------------- |
+| title            | string   | Yes      | Title for the custom tour                |
+| description      | text     | Yes      | Detailed description of what is wanted   |
+| wilaya           | int      | Yes      | Wilaya code                              |
+| budget           | decimal  | Yes      | Tourist's budget for the tour            |
+| guide            | int      | Yes      | ID of the guide being requested          |
+| date_time        | datetime | Yes      | Proposed date and time                   |
+| num_participants | int      | Yes      | Number of participants                   |
+| latitude         | decimal  | No       | Start point latitude                     |
+| longitude        | decimal  | No       | Start point longitude                    |
+
+**Response:**
+```json
+{
+  "message": "Custom tour and booking created successfully",
+  "custom_tour": {
+    "id": 1,
+    "title": "Private Desert Trek",
+    "description": "...",
+    "guide": { "id": 5, "first_name": "Ahmed", ... },
+    "budget": "50000.00",
+    "wilaya": 33
+  },
+  "booking": {
+    "id": 10,
+    "tour_type": "custom",
+    "date_time": "2025-12-30T10:00:00Z",
+    "status": "pending"
+  }
+}
+```
+
+---
+
+### List Guide Custom Tours
+**GET** `/tours/my-custom-tours/`
+**Auth**: Guide only
+
+Returns a list of custom tour requests assigned to the authenticated guide.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Private Desert Trek",
+    "tourist": { "id": 3, "email": "tourist@example.com", ... },
+    "budget": "50000.00",
+    "created_at": "2025-12-26T23:45:00Z"
+  }
+]
+```
+
+---
+
+## Bookings
 The booking system allows tourists to book tours and guides to manage incoming booking requests. Bookings go through different status transitions based on actions from both parties.
 
 **Status Values:**
@@ -660,6 +726,8 @@ The booking system allows tourists to book tours and guides to manage incoming b
 - `accepted` - Guide has accepted the booking
 - `rejected` - Guide has rejected the booking
 - `cancelled` - Tourist has cancelled the booking
+
+**Structure:** A booking is linked to either a standard **Tour** or a **Custom Tour**. The `tour` field in the response returns the details for whichever type is associated with the booking.
 
 ---
 
@@ -733,8 +801,9 @@ Returns bookings visible to the authenticated user:
 [
   {
     "id": 1,
-    "tour": "Sahara Sunset Trek",
+    "tour_title": "Sahara Sunset Trek",
     "tourist": "John Doe",
+    "tour_type": "regular",
     "date_time": "2025-12-30T14:00:00Z",
     "number_of_participants": 3,
     "status": "pending",
@@ -760,6 +829,7 @@ Returns detailed information about a specific booking.
 ```json
 {
   "id": 1,
+  "tour_type": "regular",
   "tour": {
     "id": 5,
     "title": "Sahara Sunset Trek",
