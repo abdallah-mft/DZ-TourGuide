@@ -229,3 +229,18 @@ def create_custom_tour_booking(request):
             "custom_tour": custom_tour_serializer.data,
             "booking": DetailedBookingSerializer(booking).data
         }, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def list_guide_custom_tours(request):
+    if request.user.role != 'guide':
+        return Response({"error": "Only guides can view their custom tour requests"}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        guide_profile = request.user.profile
+    except AttributeError:
+        return Response({"error": "User has no guide profile"}, status=status.HTTP_400_BAD_REQUEST)
+
+    custom_tours = CustomTour.objects.filter(guide=guide_profile).order_by('-created_at')
+    serializer = CustomTourSerializer(custom_tours, many=True)
+    return Response(serializer.data)
