@@ -955,3 +955,63 @@ Propose a new date/time for the booking. Changes status to `negotiated`.
   "message": "New date suggested successfully"
 }
 ```
+
+---
+
+## Reviews
+
+A review is linked to a booking (verified trip) and can rate both the Tour experience and the Guide.
+
+### Create Review
+**POST** `/reviews/`
+**Auth**: Tourist (Must own the accepted booking)
+
+**Body:**
+| Field        | Type    | Required | Description                                      |
+| ------------ | ------- | -------- | ------------------------------------------------ |
+| booking      | int     | Yes      | ID of the accepted booking                       |
+| tour_rating  | decimal | No*      | Rating (1.0 - 5.0) for the route/experience      |
+| guide_rating | decimal | No*      | Rating (1.0 - 5.0) for the guide's service       |
+| comment      | text    | No*      | Written feedback                                 |
+
+*\* At least one of `tour_rating`, `guide_rating`, or `comment` must be provided.*
+
+**Response:**
+```json
+{
+  "id": 1,
+  "tourist": { "id": 3, "first_name": "John", ... },
+  "guide": { "id": 7, "first_name": "Ahmed", ... },
+  "booking": 10,
+  "tour_rating": "5.0",
+  "guide_rating": "4.5",
+  "comment": "Amazing experience!",
+  "created_at": "2025-12-28T10:00:00Z"
+}
+```
+
+---
+
+### Update/Delete Review
+**PATCH/DELETE** `/reviews/{id}/`
+**Auth**: Review Author only
+
+Allows users to edit or remove their own reviews.
+
+---
+
+### List Reviews for a Tour
+**GET** `/tours/{tour_id}/reviews/`
+**Auth**: Public
+
+Returns all reviews associated with a specific standard tour.
+
+**Response:** Array of review objects.
+
+---
+
+### List My Reviews (For Guides)
+**GET** `/guides/my-reviews/`
+**Auth**: Guide only
+
+Returns all reviews received by the authenticated guide from all their tours (regular and custom).
