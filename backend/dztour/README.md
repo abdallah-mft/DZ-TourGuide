@@ -378,10 +378,14 @@ Supports pagination and future filtering.
     "price_for_day": "10000.00",
     "languages_spoken": ["ar", "fr"],
     "wilaya_covered": ["16"],
-    "is_verified": false
+    "is_verified": false,
+    "average_rating": 4.8,
+    "review_count": 120
   }
 ]
 ```
+
+**Note**: `average_rating` and `review_count` are automatically calculated and updated by the system.
 
 ---
 
@@ -510,6 +514,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
     "wilaya": "33",
     "start_point_latitude": "24.492595",
     "start_point_longitude": "9.378052",
+    "average_rating": 4.9,
+    "review_count": 42,
     "guide": {
       "id": 7,
       "first_name": "Ahmed"
@@ -518,6 +524,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   }
 ]
 ```
+
+**Note**: `average_rating` and `review_count` are automatically calculated and updated by the system.
 
 ---
 
@@ -536,6 +544,8 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
   "wilaya": "33",
   "start_point_latitude": "24.492595",
   "start_point_longitude": "9.378052",
+  "average_rating": 4.9,
+  "review_count": 42,
   "guide": {
     "id": 7,
     "first_name": "Ahmed"

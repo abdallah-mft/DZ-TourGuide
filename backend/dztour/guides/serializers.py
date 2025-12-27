@@ -40,7 +40,7 @@ class GuideProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = GuideProfile
         fields = '__all__'
-        read_only_fields = ['user', 'is_verified', 'verified_at', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'is_verified', 'verified_at', 'created_at', 'updated_at', 'average_rating', 'review_count']
 
 
 class GuideProfileCreateUpdateSerializer(serializers.ModelSerializer):

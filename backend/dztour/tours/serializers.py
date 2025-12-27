@@ -16,7 +16,7 @@ class TourSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tour
         fields = '__all__'
-        read_only_fields = ['guide', 'price']
+        read_only_fields = ['guide', 'price', 'average_rating', 'review_count']
 
     def validate_start_point_latitude(self, value):
         if value is not None and (value < -90 or value > 90):
