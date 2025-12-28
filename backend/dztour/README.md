@@ -1025,3 +1025,84 @@ Returns all reviews associated with a specific standard tour.
 **Auth**: Guide only
 
 Returns all reviews received by the authenticated guide from all their tours (regular and custom).
+
+
+## Guide Dashboard
+
+The guide dashboard provides aggregated, read-only insights for the authenticated guide.
+It combines booking activity, tour statistics, ratings, and upcoming work into a single view.
+
+All dashboard endpoints are **guide-only** and require authentication.
+
+---
+
+### Get Dashboard Overview
+
+**GET** `/guides/dashboard/`  
+**Auth**: Guide only
+
+Returns global statistics for the authenticated guide.
+
+**Response**
+```json
+{
+  "total_bookings": 1,
+  "accepted_bookings": 0,
+  "pending_bookings": 1,
+  "total_earnings": "0.00",
+  "total_reviews": 0,
+  "average_rating": "0.00",
+  "total_tours": 1,
+  "tours_with_bookings": 0,
+  "most_booked_tour": null
+}
+````
+
+**Fields**
+
+| Field                 | Description                               |
+| --------------------- | ----------------------------------------- |
+| `total_bookings`      | Total booking requests (regular + custom) |
+| `accepted_bookings`   | Bookings accepted by the guide            |
+| `pending_bookings`    | Bookings awaiting guide action            |
+| `total_earnings`      | Estimated value of accepted tour bookings |
+| `total_reviews`       | Total reviews received by the guide       |
+| `average_rating`      | Average guide rating                      |
+| `total_tours`         | Total tours created by the guide          |
+| `tours_with_bookings` | Tours that received at least one booking  |
+| `most_booked_tour`    | Most booked tour (or `null` if none)      |
+
+---
+
+### Estimated Value Breakdown
+
+**GET** `/guides/dashboard/earnings/`  
+**Auth**: Guide only
+
+Returns a breakdown of **accepted bookings** with their **estimated value**, calculated from the associated tour price.
+
+> ⚠️ This endpoint does **not** represent real earnings or payments.  
+> Values are **informational only** and assume the tour price as the potential value of the booking.
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|---------|------|-------------|
+| `limit` | int  | Limit number of returned bookings |
+
+#### Response
+
+```json
+{
+  "total_estimated_value": "25000.00",
+  "breakdown": [
+    {
+      "booking_id": 12,
+      "tour_title": "Sahara Sunset Trek",
+      "tourist_name": "John Doe",
+      "date_time": "2025-12-30T14:00:00Z",
+      "participants": 3,
+      "estimated_value": "25000.00"
+    }
+  ]
+}
