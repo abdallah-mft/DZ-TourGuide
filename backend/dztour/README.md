@@ -627,7 +627,7 @@ Returns a list of tours created by the authenticated guide.
 **Body:**
 | Field | Type         | Required |
 | ----- | ----         | -------- |
-| image | List( file ) | Yes      |
+| images| List( file ) | Yes      |
 
 **Response:**
 ```json

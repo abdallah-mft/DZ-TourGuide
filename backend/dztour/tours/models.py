@@ -40,6 +40,7 @@ class TourPicture(models.Model):
     image = CloudinaryField(folder='tour_pics')
     created_at = models.DateTimeField(auto_now_add=True)
     
+    
     def __str__(self):
         return f"{self.tour.title} - Picture {self.id}"
 
