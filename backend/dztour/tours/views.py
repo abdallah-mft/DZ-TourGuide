@@ -57,7 +57,7 @@ class TourViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['POST'], url_path='add-images')
     def add_images(self, request, pk=None):
-        tour = self.get_object()
+        tour = Booking.get_or_404(pk=pk)
         images = request.FILES.getlist('images')
 
         if not images:
@@ -96,8 +96,8 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     def get_queryset(self):
         user = self.request.user
         return Booking.objects.filter(
-            Q(tourist=user) | Q(tour__guide__user=user)
-        ).select_related('tour', 'tourist', 'tour__guide').annotate(
+            Q(tourist=user) | Q(tour__guide__user=user) | Q(custom_tour__guide__user=user)
+        ).select_related('tour', 'tourist', 'tour__guide', 'custom_tour').annotate(
             status_priority=Case(
                 When(status='negotiated', then=Value(1)),
                 When(status='pending', then=Value(2)),
@@ -117,9 +117,9 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     @action(detail=True, methods=['POST'])
     def accept(self, request, pk=None):
-        booking = self.get_object()
+        booking = get_object_or_404(Booking, pk=pk)
         
-        if request.user != booking.tour.guide.user:
+        if request.user != booking.get_tour_object().guide.user:
             return Response({"error": "Only the guide can accept this booking"}, status=status.HTTP_403_FORBIDDEN)
             
         if booking.status not in ['pending', 'negotiated']:
@@ -131,9 +131,9 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     @action(detail=True, methods=['POST'])
     def reject(self, request, pk=None):
-        booking = self.get_object()
+        booking = get_object_or_404(Booking, pk=pk)
         
-        if request.user != booking.tour.guide.user:
+        if request.user != booking.get_tour_object().guide.user:
             return Response({"error": "Only the guide can reject this booking"}, status=status.HTTP_403_FORBIDDEN)
             
         if booking.status not in ['pending', 'negotiated']:
@@ -145,7 +145,7 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     @action(detail=True, methods=['POST'])
     def cancel(self, request, pk=None):
-        booking = self.get_object()
+        booking = get_object_or_404(Booking, pk=pk)
         
         if request.user != booking.tourist:
             return Response({"error": "Only the tourist can cancel their booking"}, status=status.HTTP_403_FORBIDDEN)
@@ -159,7 +159,10 @@ class BookingViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     @action(detail=True, methods=['POST'], url_path='suggest-new-date')
     def suggest_new_date(self, request, pk=None):
-        booking = self.get_object()
+        booking = get_object_or_404(Booking, pk=pk)
+
+        if request.user != booking.get_tour_object().guide.user and request.user != booking.tourist:
+            return Response({"error": "Only the guide or the tourist can suggest a new date"}, status=status.HTTP_403_FORBIDDEN)
         
         if booking.status in ['accepted', 'rejected', 'cancelled']:
             return Response({"error": "Cannot negotiate a closed booking"}, status=status.HTTP_400_BAD_REQUEST)
