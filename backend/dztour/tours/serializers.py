@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from django.utils import timezone
+from opencage.geocoder import OpenCageGeocode, RateLimitExceededError, InvalidInputError
+import os
+
 from .models import Tour, TourPicture, Booking, CustomTour
 from users.serializers import UserSerializer
 
@@ -27,6 +30,54 @@ class TourSerializer(serializers.ModelSerializer):
         if value is not None and (value < -180 or value > 180):
             raise serializers.ValidationError("Longitude must be between -180 and 180 degrees.")
         return value
+
+    def validate(self, attrs):
+        ''' 
+        check if the given (lang/lat) strat position match the guide covered
+        commune and wilaya, using externel api of OpenCage
+        '''
+        lat = attrs.get('start_point_latitude')
+        lng = attrs.get('start_point_longitude')
+        if not lat or not lng:
+            print('lat lang not exist')
+            return attrs
+
+        key = os.getenv('OPEN_CAGE_KEY')
+        if not key:
+            print('key not exist')
+            return attrs
+
+        try:
+            geocoder = OpenCageGeocode(key)
+            results = geocoder.reverse_geocode(float(lat), float(lng), no_annotations=1)
+            if not results or len(results) == 0:
+                print('no resault')
+                return attrs
+
+            components = results[0]['components']            
+            commune_name = components.get('_normalized_city') or components.get('city') or components.get('town')
+            state_name = components.get('state')
+            
+            if not commune_name and not state_name:
+                print('no commune or state provided in geolocation components')
+                return attrs
+
+            request = self.context.get('request')
+            if request and hasattr(request.user, 'profile'):
+                guide_profile = request.user.profile
+                
+                if commune_name:
+                    if not guide_profile.commune_covered.filter(name_fr__iexact=commune_name).exists():
+                        raise serializers.ValidationError({"start_point": f"The location ({commune_name}) is not in your covered communes."})
+                elif state_name:
+                    if not guide_profile.wilaya_covered.filter(name_fr__iexact=state_name).exists():
+                        raise serializers.ValidationError({"start_point": f"The wilaya ({state_name}) is not in your covered wilayas."})
+        
+        except (RateLimitExceededError, InvalidInputError) as ex:
+            print(f"OpenCage Validation Skipped: {ex}")
+            pass
+
+        return attrs
 
 class CustomTourSerializer(serializers.ModelSerializer):
     tourist = UserSerializer(read_only=True)

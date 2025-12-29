@@ -41,7 +41,6 @@ class TourViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(guide=self.request.user.profile)  
 
-
     @action(detail=False, methods=['GET'], url_path='for-guide')
     def list_guide_tours(self, request):
         guide = request.user.profile

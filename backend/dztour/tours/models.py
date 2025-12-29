@@ -11,8 +11,8 @@ class Tour(models.Model):
     wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL, null=True, related_name='tours')
     duration = models.DurationField()
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    start_point_latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    start_point_longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    start_point_latitude = models.DecimalField(max_digits=10,decimal_places=6)
+    start_point_longitude = models.DecimalField(max_digits=11,decimal_places=6)
     
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
     review_count = models.PositiveIntegerField(default=0)
