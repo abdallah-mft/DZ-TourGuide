@@ -4,6 +4,7 @@ from opencage.geocoder import OpenCageGeocode, RateLimitExceededError, InvalidIn
 import os
 
 from .models import Tour, TourPicture, Booking, CustomTour
+from guides.models import Wilaya
 from users.serializers import UserSerializer
 
 class TourPictureSerializer(serializers.ModelSerializer):
@@ -19,17 +20,7 @@ class TourSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tour
         fields = '__all__'
-        read_only_fields = ['guide', 'price', 'average_rating', 'review_count']
-
-    def validate_start_point_latitude(self, value):
-        if value is not None and (value < -90 or value > 90):
-            raise serializers.ValidationError("Latitude must be between -90 and 90 degrees.")
-        return value
-
-    def validate_start_point_longitude(self, value):
-        if value is not None and (value < -180 or value > 180):
-            raise serializers.ValidationError("Longitude must be between -180 and 180 degrees.")
-        return value
+        read_only_fields = ['guide', 'price', 'average_rating', 'review_count', 'wilaya']
 
     def validate(self, attrs):
         ''' 
@@ -61,6 +52,14 @@ class TourSerializer(serializers.ModelSerializer):
             if not commune_name and not state_name:
                 print('no commune or state provided in geolocation components')
                 return attrs
+
+            # Automatically set the wilaya based on state_name
+            if state_name:
+                try:
+                    wilaya_obj = Wilaya.objects.get(name_fr__iexact=state_name)
+                    attrs['wilaya'] = wilaya_obj
+                except Wilaya.DoesNotExist:
+                    print(f"Wilaya with name {state_name} not found in database")
 
             request = self.context.get('request')
             if request and hasattr(request.user, 'profile'):

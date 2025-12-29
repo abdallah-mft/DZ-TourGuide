@@ -8,11 +8,19 @@ class Tour(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     guide = models.ForeignKey(GuideProfile, on_delete=models.CASCADE, related_name='tours')
-    wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL, null=True, related_name='tours')
+    wilaya = models.ForeignKey(Wilaya, on_delete=models.SET_NULL,blank=True, null=True, related_name='tours')
     duration = models.DurationField()
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
-    start_point_latitude = models.DecimalField(max_digits=10,decimal_places=6)
-    start_point_longitude = models.DecimalField(max_digits=11,decimal_places=6)
+    start_point_latitude = models.DecimalField(
+        max_digits=20,
+        decimal_places=18,
+        validators=[MinValueValidator(-99), MaxValueValidator(99)]
+    )
+    start_point_longitude = models.DecimalField(
+        max_digits=20,
+        decimal_places=17,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)]
+    )
     
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
     review_count = models.PositiveIntegerField(default=0)

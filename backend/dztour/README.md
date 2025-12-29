@@ -566,7 +566,6 @@ Returns a list of tours. Supports search and filtering by Duration rang, price r
 | title                  | text             | Yes      | Tour title                           |
 | description            | text             | Yes      | Tour description                     |
 | duration               | string (HH:MM:SS)| Yes      | Tour duration                        |
-| wilaya                 | int              | Yes      | Wilaya code                          |
 | start_point_latitude   | decimal          | Yes      | Start point latitude (-90 to 90)     |
 | start_point_longitude  | decimal          | Yes      | Start point longitude (-180 to 180)  |
 
