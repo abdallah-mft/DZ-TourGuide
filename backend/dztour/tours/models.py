@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from cloudinary.models import CloudinaryField
 from guides.models import GuideProfile, Wilaya
 from users.models import User
