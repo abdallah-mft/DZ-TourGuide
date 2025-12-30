@@ -47,6 +47,7 @@ EMAIL_VERIFICATION_EXPIRY_SECONDS = 900
 
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -70,8 +71,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'django_filters',
-
-
+    'channels',
+    'chat',
 ]
 
 
@@ -122,6 +123,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'dztour.wsgi.application'
+ASGI_APPLICATION = 'dztour.asgi.application'
 
 
 DB_MODE = os.getenv('DB_MODE', 'local')
@@ -267,4 +269,22 @@ ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
 ACCOUNT_USERNAME_REQUIRED = False            
 ACCOUNT_EMAIL_REQUIRED = True
 
-
+if os.getenv('REDIS_URL'):
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [os.getenv('REDIS_URL')],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', 6379)))],
+                # "password": os.getenv('REDIS_PASSWORD', None),
+            },
+        },
+    }
