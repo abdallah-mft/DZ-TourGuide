@@ -15,7 +15,7 @@ class ThreadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Thread
-        fields = ['id', 'other_user', 'updated_at', 'last_message']
+        fields = ['id', 'other_user', 'last_message', 'updated_at']
 
     def get_other_user(self, obj):
         request = self.context.get('request')

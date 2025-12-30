@@ -1105,3 +1105,103 @@ Returns a breakdown of **accepted bookings** with their **estimated value**, cal
     }
   ]
 }
+```
+
+---
+
+## Chat System
+
+Real-time messaging between Tourists and Guides. The system uses WebSockets for instant communication and a REST API for message history/inbox management. **Role Restricted**: Chats can only occur between a 
+
+### 1. HTTP API (Inbox & History)
+
+#### List Chat Threads (Inbox)
+**GET** `/api/chat/threads/`
+**Auth**: Authenticated User
+
+Returns a list of all conversation threads the user is part of.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "other_user": {
+      "id": 5,
+      "email": "guide@example.com",
+      "first_name": "Hamza",
+      "last_name": "Guide",
+      "role": "guide"
+    },
+    "updated_at": "2025-12-30T15:00:00Z",
+    "last_message": {
+      "id": 105,
+      "user": { "id": 5, ... },
+      "message": "Hello! Yes, the tour is available.",
+      "timestamp": "2025-12-30T15:00:00Z"
+    }
+  }
+]
+```
+
+#### Get Message History
+**GET** `/api/chat/messages/{user_id}/`
+**Auth**: Authenticated User
+
+Fetches the full conversation history with a specific user.
+
+*   `user_id`: The ID of the person you want to chat with.
+
+**Response:**
+```json
+[
+  {
+    "id": 10,
+    "user": { "id": 2, "first_name": "John" },
+    "message": "Hi, I have a question about the Casbah tour.",
+    "timestamp": "2025-12-30T14:55:00Z"
+  },
+  {
+    "id": 11,
+    "user": { "id": 5, "first_name": "Hamza" },
+    "message": "Hello! Sure, go ahead.",
+    "timestamp": "2025-12-30T14:56:00Z"
+  }
+]
+```
+
+---
+
+### 2. WebSocket API (Real-Time)
+
+Connect to the WebSocket server to send and receive messages instantly.
+
+#### Connection URL
+```
+ws://<HOST>/chat/<USER_ID>/?token=<ACCESS_TOKEN>
+```
+*   `HOST`: API host (e.g., `localhost:8000`).
+*   `USER_ID`: The ID of the person you want to chat with.
+*   `ACCESS_TOKEN`: Valid JWT Access Token (passed as a query parameter).
+
+**Example:**
+`ws://localhost:8000/chat/5/?token=eyJhbGciOiJIUz...`
+
+#### Sending a Message
+Send a JSON payload to the server:
+```json
+{
+    "message": "Is the starting time flexible?"
+}
+```
+
+#### Receiving a Message
+The server broadcasts JSON events when a new message arrives:
+```json
+{
+    "message": "Yes, we can start an hour later.",
+    "user_id": 5,
+    "user_email": "guide@example.com",
+    "timestamp": "2025-12-30T15:30:00.000Z"
+}
+```
