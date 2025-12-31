@@ -112,7 +112,7 @@ class DetailedBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
-        read_only_fields = ('tour', 'custom_tour', 'tourist', 'status', 'created_at', 'updated_at')
+        read_only_fields = ('tour', 'custom_tour', 'tourist', 'status', 'created_at', 'updated_at', 'tour_type')
 
     def get_tour(self, obj):
         tour_obj = obj.get_tour_object()

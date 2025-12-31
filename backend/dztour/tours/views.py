@@ -18,7 +18,7 @@ class TourViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'description', 'guide__user__username']
 
     def get_queryset(self):
-        queryset = Tour.objects.all()
+        queryset = Tour.objects.select_related('guide__user', 'wilaya').prefetch_related('pictures')
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
         min_duration = self.request.query_params.get('min_duration')
@@ -44,7 +44,7 @@ class TourViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'], url_path='for-guide')
     def list_guide_tours(self, request):
         guide = request.user.profile
-        tours = Tour.objects.filter(guide=guide)
+        tours = Tour.objects.filter(guide=guide).select_related('guide__user', 'wilaya').prefetch_related('pictures')
         serializer = TourSerializer(tours, many=True)
         return Response(serializer.data)
 

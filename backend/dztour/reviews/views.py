@@ -5,7 +5,7 @@ from rest_framework.generics import get_object_or_404
 
 from .models import Review
 from tours.models import Tour
-from .serializers import ReviewSerializer
+from .serializers import ReviewSerializer, ReviewWithBookingSerializer
 from .permissions import IsReviewAuthorOrReadOnly
 
 class CreateReview(generics.CreateAPIView):
@@ -21,7 +21,7 @@ class DestroyUpdateReview(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 def get_tour_reviews(request, tour_id):
     tour = get_object_or_404(Tour, id=tour_id)
-    reviews = Review.objects.filter(booking__tour=tour)
+    reviews = Review.objects.filter(booking__tour=tour).select_related('tourist')
     serializer = ReviewSerializer(reviews, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -31,6 +31,6 @@ def guide_get_my_reviews(request):
     if user.role != 'guide':
         return Response({'error': 'Tourists can not get reviews'}, status=status.HTTP_403_FORBIDDEN)
 
-    reviews = Review.objects.filter(guide=user)
-    serializer = ReviewSerializer(reviews, many=True)
+    reviews = Review.objects.filter(guide=user).select_related('tourist', 'booking')
+    serializer = ReviewWithBookingSerializer(reviews, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)

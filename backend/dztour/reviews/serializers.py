@@ -5,7 +5,6 @@ from tours.serializers import MinimalBookingSerializer
 
 class ReviewSerializer(serializers.ModelSerializer):
     tourist = UserSerializer(read_only=True)
-    guide = UserSerializer(read_only=True)
     
     class Meta:
         model = Review
@@ -42,3 +41,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A review must have at least a rating (tour/guide) or a comment.")
         
         return attrs
+
+class ReviewWithBookingSerializer(ReviewSerializer):
+    booking = MinimalBookingSerializer(read_only=True)
